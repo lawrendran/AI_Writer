@@ -21,9 +21,7 @@ def load_model(path_to_model, path_to_dictionary):
         worddict = pkl.load(f)
 
     # Create inverted dictionary
-    word_idict = dict()
-    for kk, vv in worddict.iteritems():
-        word_idict[vv] = kk
+    word_idict = {vv: kk for kk, vv in worddict.iteritems()}
     word_idict[0] = '<eos>'
     word_idict[1] = 'UNK'
 
@@ -42,16 +40,15 @@ def load_model(path_to_model, path_to_dictionary):
     trng = RandomStreams(1234)
     f_init, f_next = build_sampler(tparams, options, trng)
 
-    # Pack everything up
-    dec = dict()
-    dec['options'] = options
-    dec['trng'] = trng
-    dec['worddict'] = worddict
-    dec['word_idict'] = word_idict
-    dec['tparams'] = tparams
-    dec['f_init'] = f_init
-    dec['f_next'] = f_next
-    return dec
+    return {
+        'options': options,
+        'trng': trng,
+        'worddict': worddict,
+        'word_idict': word_idict,
+        'tparams': tparams,
+        'f_init': f_init,
+        'f_next': f_next,
+    }
 
 def run_sampler(dec, c, beam_width=1, stochastic=False, use_unk=False):
     """
@@ -61,12 +58,9 @@ def run_sampler(dec, c, beam_width=1, stochastic=False, use_unk=False):
                                c.reshape(1, dec['options']['dimctx']), dec['options'],
                                trng=dec['trng'], k=beam_width, maxlen=1000, stochastic=stochastic,
                                use_unk=use_unk)
-    text = []
     if stochastic:
         sample = [sample]
-    for c in sample:
-        text.append(' '.join([dec['word_idict'][w] for w in c[:-1]]))
-
+    text = [' '.join([dec['word_idict'][w] for w in c[:-1]]) for c in sample]
     #Sort beams by their NLL, return the best result
     lengths = numpy.array([len(s.split()) for s in text])
     if lengths[0] == 0:  # in case the model only predicts <eos>
@@ -205,7 +199,7 @@ def norm_weight(nin,nout=None, scale=0.1, ortho=True):
     Uniform initalization from [-scale, scale]
     If matrix is square and ortho=True, use ortho instead
     """
-    if nout == None:
+    if nout is None:
         nout = nin
     if nout == nin and ortho:
         W = ortho_weight(nin)
@@ -218,9 +212,9 @@ def param_init_fflayer(options, params, prefix='ff', nin=None, nout=None, ortho=
     """
     Affine transformation + point-wise nonlinearity
     """
-    if nin == None:
+    if nin is None:
         nin = options['dim_proj']
-    if nout == None:
+    if nout is None:
         nout = options['dim_proj']
     params[_p(prefix,'W')] = norm_weight(nin, nout)
     params[_p(prefix,'b')] = numpy.zeros((nout,)).astype('float32')
@@ -238,9 +232,9 @@ def param_init_gru(options, params, prefix='gru', nin=None, dim=None):
     """
     Gated Recurrent Unit (GRU)
     """
-    if nin == None:
+    if nin is None:
         nin = options['dim_proj']
-    if dim == None:
+    if dim is None:
         dim = options['dim_proj']
     W = numpy.concatenate([norm_weight(nin,dim),
                            norm_weight(nin,dim)], axis=1)
