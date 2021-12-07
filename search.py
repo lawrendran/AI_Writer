@@ -13,10 +13,7 @@ def gen_sample(tparams, f_init, f_next, ctx, options, trng=None, k=1, maxlen=30,
         assert not stochastic, 'Beam search does not support stochastic sampling'
 
     sample = []
-    sample_score = []
-    if stochastic:
-        sample_score = 0
-
+    sample_score = 0 if stochastic else []
     live_k = 1
     dead_k = 0
 
@@ -27,16 +24,13 @@ def gen_sample(tparams, f_init, f_next, ctx, options, trng=None, k=1, maxlen=30,
     next_state = f_init(ctx)
     next_w = -1 * numpy.ones((1,)).astype('int64')
 
-    for ii in xrange(maxlen):
+    for _ in xrange(maxlen):
         inps = [next_w, next_state]
         ret = f_next(*inps)
         next_p, next_w, next_state = ret[0], ret[1], ret[2]
 
         if stochastic:
-            if argmax:
-                nw = next_p[0].argmax()
-            else:
-                nw = next_w[0]
+            nw = next_p[0].argmax() if argmax else next_w[0]
             sample.append(nw)
             sample_score += next_p[0,nw]
             if nw == 0:
@@ -93,12 +87,10 @@ def gen_sample(tparams, f_init, f_next, ctx, options, trng=None, k=1, maxlen=30,
             next_w = numpy.array([w[-1] for w in hyp_samples])
             next_state = numpy.array(hyp_states)
 
-    if not stochastic:
-        # dump every remaining one
-        if live_k > 0:
-            for idx in xrange(live_k):
-                sample.append(hyp_samples[idx])
-                sample_score.append(hyp_scores[idx])
+    if not stochastic and live_k > 0:
+        for idx in xrange(live_k):
+            sample.append(hyp_samples[idx])
+            sample_score.append(hyp_scores[idx])
 
     return sample, sample_score
 

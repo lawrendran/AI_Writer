@@ -22,9 +22,7 @@ def load_model(path_to_model):
         worddict = pkl.load(f)
 
     # Create inverted dictionary
-    word_idict = dict()
-    for kk, vv in worddict.iteritems():
-        word_idict[vv] = kk
+    word_idict = {vv: kk for kk, vv in worddict.iteritems()}
     word_idict[0] = '<eos>'
     word_idict[1] = 'UNK'
 
@@ -45,14 +43,13 @@ def load_model(path_to_model):
     trng, [im], images = build_image_encoder(tparams, options)
     f_ienc = theano.function([im], images, name='f_ienc')
 
-    # Store everything we need in a dictionary
-    model = {}
-    model['options'] = options
-    model['worddict'] = worddict
-    model['word_idict'] = word_idict
-    model['f_senc'] = f_senc
-    model['f_ienc'] = f_ienc
-    return model
+    return {
+        'options': options,
+        'worddict': worddict,
+        'word_idict': word_idict,
+        'f_senc': f_senc,
+        'f_ienc': f_ienc,
+    }
 
 def encode_sentences(model, X, verbose=False, batch_size=128):
     """
@@ -98,8 +95,7 @@ def encode_images(model, IM):
     """
     Encode images into the joint embedding space
     """
-    images = model['f_ienc'](IM)
-    return images
+    return model['f_ienc'](IM)
 
 def _p(pp, name):
     """
@@ -158,7 +154,7 @@ def build_sentence_encoder(tparams, options):
     """
     Encoder only, for sentences
     """
-    opt_ret = dict()
+    opt_ret = {}
 
     trng = RandomStreams(1234)
 
@@ -185,7 +181,7 @@ def build_image_encoder(tparams, options):
     """
     Encoder only, for images
     """
-    opt_ret = dict()
+    opt_ret = {}
 
     trng = RandomStreams(1234)
 
@@ -231,7 +227,7 @@ def norm_weight(nin,nout=None, scale=0.1, ortho=True):
     Uniform initalization from [-scale, scale]
     If matrix is square and ortho=True, use ortho instead
     """
-    if nout == None:
+    if nout is None:
         nout = nin
     if nout == nin and ortho:
         W = ortho_weight(nin)
@@ -243,7 +239,7 @@ def xavier_weight(nin,nout=None):
     """
     Xavier init
     """
-    if nout == None:
+    if nout is None:
         nout = nin
     r = numpy.sqrt(6.) / numpy.sqrt(nin + nout)
     W = numpy.random.rand(nin, nout) * 2 * r - r
@@ -254,9 +250,9 @@ def param_init_fflayer(options, params, prefix='ff', nin=None, nout=None, ortho=
     """
     Affine transformation + point-wise nonlinearity
     """
-    if nin == None:
+    if nin is None:
         nin = options['dim_proj']
-    if nout == None:
+    if nout is None:
         nout = options['dim_proj']
     params[_p(prefix,'W')] = xavier_weight(nin, nout)
     params[_p(prefix,'b')] = numpy.zeros((nout,)).astype('float32')
@@ -274,9 +270,9 @@ def param_init_gru(options, params, prefix='gru', nin=None, dim=None):
     """
     Gated Recurrent Unit (GRU)
     """
-    if nin == None:
+    if nin is None:
         nin = options['dim_proj']
-    if dim == None:
+    if dim is None:
         dim = options['dim_proj']
     W = numpy.concatenate([norm_weight(nin,dim),
                            norm_weight(nin,dim)], axis=1)

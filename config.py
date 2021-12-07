@@ -173,15 +173,13 @@ def compute_features(net, im):
     """
     Compute fc7 features for im
     """
-    if config.FLAG_CPU_MODE:
-        net.blobs['data'].reshape(* im.shape)
-        net.blobs['data'].data[...] = im
-        net.forward()
-        fc7 = net.blobs['fc7'].data
-    else:
-        fc7 = numpy.array(lasagne.layers.get_output(net['fc7'], im,
+    if not config.FLAG_CPU_MODE:
+        return numpy.array(lasagne.layers.get_output(net['fc7'], im,
                                                     deterministic=True).eval())
-    return fc7
+    net.blobs['data'].reshape(* im.shape)
+    net.blobs['data'].data[...] = im
+    net.forward()
+    return net.blobs['fc7'].data
 
 def build_convnet(path_to_vgg):
     """

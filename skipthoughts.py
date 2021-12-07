@@ -48,28 +48,23 @@ def load_model(path_to_models, path_to_tables):
     # Tables
     utable, btable = load_tables(path_to_tables)
 
-    # Store everything we need in a dictionary
-    model = {}
-    model['uoptions'] = uoptions
-    model['boptions'] = boptions
-    model['utable'] = utable
-    model['btable'] = btable
-    model['f_w2v'] = f_w2v
-    model['f_w2v2'] = f_w2v2
-
-    return model
+    return {
+        'uoptions': uoptions,
+        'boptions': boptions,
+        'utable': utable,
+        'btable': btable,
+        'f_w2v': f_w2v,
+        'f_w2v2': f_w2v2,
+    }
 
 def load_tables(path_to_tables):
     """
     Load the tables
     """
-    words = []
     utable = numpy.load(path_to_tables + 'utable.npy')
     btable = numpy.load(path_to_tables + 'btable.npy')
-    f = open(path_to_tables + 'dictionary.txt', 'rb')
-    for line in f:
-        words.append(line.decode('utf-8').strip())
-    f.close()
+    with open(path_to_tables + 'dictionary.txt', 'rb') as f:
+        words = [line.decode('utf-8').strip() for line in f]
     utable = OrderedDict(zip(words, utable))
     btable = OrderedDict(zip(words, btable))
     return utable, btable
@@ -261,7 +256,7 @@ def ortho_weight(ndim):
     return u.astype('float32')
 
 def norm_weight(nin,nout=None, scale=0.1, ortho=True):
-    if nout == None:
+    if nout is None:
         nout = nin
     if nout == nin and ortho:
         W = ortho_weight(nin)
@@ -273,9 +268,9 @@ def param_init_gru(options, params, prefix='gru', nin=None, dim=None):
     """
     parameter init for GRU
     """
-    if nin == None:
+    if nin is None:
         nin = options['dim_proj']
-    if dim == None:
+    if dim is None:
         dim = options['dim_proj']
     W = numpy.concatenate([norm_weight(nin,dim),
                            norm_weight(nin,dim)], axis=1)
